@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -68,17 +69,16 @@ public class LS_Service extends Service {
     }
 
     @Override
-    public void onCreate()
-    {
+    public void onCreate() {
         Log.d(TAG, "LS_Service onCreate Start");
 
         //load files (password/settings, and all challenge codes)
         loadFiles();
         String uristring = "http://161.115.86.186:8080/PuzzleSender/rest/PuzzleService/puzzles";
 
-        if(!getBaseContext().getFileStreamPath("appPuzzles").exists()) {
+        if (!getBaseContext().getFileStreamPath("appPuzzles").exists()) {
             requestData(uristring);
-        }else{
+        } else {
             Log.d(TAG, "Reading puzzles from file");
             //readPuzzles();
         }
@@ -101,67 +101,40 @@ public class LS_Service extends Service {
     private void loadFiles() {
         String filename = "appData";
         File file = new File(this.getFilesDir(), filename);
-        try {
-            FileInputStream fis = new FileInputStream(file);
+        try (FileInputStream fis = new FileInputStream(file)) {
+            //make a buffer to hold the bytes in the file
+            byte[] buffer = new byte[(int) file.length()];
 
+            //key used to encrypt data
+            String key = "448AFBF228EC9AZX";
 
-            try {
-                //make a buffer to hold the bytes in the file
-                byte[] buffer = new byte[(int)file.length()];
+            //Cipher used to decrypt data
+            Cipher cipher = Cipher.getInstance("AES");
 
-                try {
-                    //key used to encrypt data
-                    String key = "448AFBF228EC9AZX";
+            SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
 
-                    //Cipher used to decrypt data
-                    Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
 
-                    SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes("UTF8"), "AES");
+            //get the data from the file
+            fis.read(buffer);
 
-                    cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+            //decrypt the data
+            buffer = cipher.doFinal(buffer);
 
-                    //get the data from the file
-                    fis.read(buffer);
+            //get the password from the buffer
+            LS_Service.password_ = new String(buffer, 0, buffer.length - 1, StandardCharsets.UTF_8);
 
-                    //decrypt the data
-                    buffer = cipher.doFinal(buffer);
+            //get whether or not to show notifications
+            byte showNots = buffer[buffer.length - 1];
 
-                    fis.close();
+            showNotifications_ = (int) showNots != 1;
+            Log.d(TAG, "SHOWNOTS " + showNotifications_);
+            Log.d(TAG, password_ + " good");
 
-                    //get the password from the buffer
-                    LS_Service.password_ = new String(buffer, 0, buffer.length-1);
-
-                    //get whether or not to show notifications
-                    byte showNots = buffer[buffer.length - 1];
-
-
-                    if ((int) showNots == 1)
-                        showNotifications_ = false;
-                    else
-                        showNotifications_ = true;
-                    Log.d(TAG, "SHOWNOTS " + showNotifications_);
-                    //password = (new String(str));
-                    Log.d(TAG, password_ + " good");
-
-                    //load saved challenges
-//                    loadSavedChallenges();
-                }
-                catch (Exception e)
-                {
-                    e.printStackTrace();
-                }
-            } catch (Exception e) {
-                Log.d(TAG, e.toString());
-                Log.d(TAG, file.getPath());
-                Log.d(TAG, ((Integer) (int)file.length()).toString());
-                e.printStackTrace();
-                Log.d(TAG, "file not found76487");
-            }
-        }
-        catch (Exception e)
-        {
-            //if the password file is not found then the there won't be challenge codes
-            Log.d(TAG,"file not found");
+            //load saved challenges
+            //loadSavedChallenges();
+        } catch (Exception e) {
+            Log.d(TAG, "Error loading files: " + e.getMessage());
         }
     }
 
@@ -173,7 +146,7 @@ public class LS_Service extends Service {
         Log.d(TAG, "LS_Service onDestroy end");
     }
 
-    public static String getData(String uri){
+    public static String getData(String uri) {
         BufferedReader reader = null;
 
         try {
@@ -181,24 +154,22 @@ public class LS_Service extends Service {
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             StringBuilder sb = new StringBuilder();
-            reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            reader = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
             String line;
-            while ((line = reader.readLine()) != null)
-            {
-                sb.append(line +"\n");
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
             }
 
             return sb.toString();
-        } catch (Exception e){
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.d(TAG, "Error getting data: " + e.getMessage());
             return null;
-        }finally {
-            if(reader != null){
+        } finally {
+            if (reader != null) {
                 try {
                     reader.close();
-                } catch (IOException e){
-                    e.printStackTrace();
-                    return null;
+                } catch (IOException e) {
+                    Log.d(TAG, "Error closing reader: " + e.getMessage());
                 }
             }
         }
@@ -209,23 +180,19 @@ public class LS_Service extends Service {
         task.execute(uristring, "Param2", "Param3");
     }
 
-
-    private class MyTask extends AsyncTask<String, String, String>
-    {
+    private class MyTask extends AsyncTask<String, String, String> {
         @Override
         protected void onPreExecute() {
             //updateDisplay("Starting Task");
         }
 
         @Override
-        protected String doInBackground(String... params){
-            String content = getData(params[0]);
-            return content;
+        protected String doInBackground(String... params) {
+            return getData(params[0]);
         }
 
         @Override
-        protected void onPostExecute(String result){
-
+        protected void onPostExecute(String result) {
             puzzleList = PuzzleXMLParser.parseFeed(result);
             //initialLayout = puzzleList.get(0).getInitialLayout();
             //finalLayout_ = puzzleList.get(0).getFinalLayout();
@@ -239,36 +206,30 @@ public class LS_Service extends Service {
     }
 
     public void writePuzzles() {
-        //File file = new File(this.getFilesDir(), puzzlesFileName_);
-        //String newLine = "\n\r";
         String newLine = "\n";
         String initialIndex = "2";
-        try {
-            FileOutputStream outputStream = openFileOutput(puzzlesFileName_, Context.MODE_PRIVATE);
-
+        try (FileOutputStream outputStream = openFileOutput(puzzlesFileName_, Context.MODE_PRIVATE)) {
             //write index of first puzzle and amount of puzzles to file
-            outputStream.write(initialIndex.getBytes());
-            outputStream.write(newLine.getBytes());
-            outputStream.write(Integer.toString(puzzleList.size()).getBytes());
-            outputStream.write(newLine.getBytes());
+            outputStream.write(initialIndex.getBytes(StandardCharsets.UTF_8));
+            outputStream.write(newLine.getBytes(StandardCharsets.UTF_8));
+            outputStream.write(Integer.toString(puzzleList.size()).getBytes(StandardCharsets.UTF_8));
+            outputStream.write(newLine.getBytes(StandardCharsets.UTF_8));
 
-            for(Puzzle puzzle: puzzleList) { //write every puzzle to file, each layout on it's own line
-                outputStream.write(puzzle.getInitialLayout().getBytes());
-                outputStream.write(newLine.getBytes());
-                outputStream.write(puzzle.getFinalLayout().getBytes());
-                outputStream.write(newLine.getBytes());
+            for (Puzzle puzzle : puzzleList) { //write every puzzle to file, each layout on its own line
+                outputStream.write(puzzle.getInitialLayout().getBytes(StandardCharsets.UTF_8));
+                outputStream.write(newLine.getBytes(StandardCharsets.UTF_8));
+                outputStream.write(puzzle.getFinalLayout().getBytes(StandardCharsets.UTF_8));
+                outputStream.write(newLine.getBytes(StandardCharsets.UTF_8));
                 puzzleQueue.add(puzzle.getInitialLayout());
                 puzzleQueue.add(puzzle.getFinalLayout());
             }
 
-            outputStream.close();
             Log.d(TAG, "puzzles written");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d(TAG, "Error writing puzzles: " + e.getMessage());
         }
     }
-
 
     /*public void readPuzzles() {
         try {
@@ -343,4 +304,3 @@ public class LS_Service extends Service {
     }*/
 
 }
-
