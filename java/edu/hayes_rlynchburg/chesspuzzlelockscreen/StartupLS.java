@@ -9,19 +9,21 @@ public class StartupLS extends Activity {
 
     private static final String TAG = "TAG";
 
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "LS Startup onCreate Start");
         super.onCreate(savedInstanceState);
 
+        // Start the lock screen service
         this.startService(new Intent(this, LS_Service.class));
 
-        //start the notification service
+        // Start the notification service
         this.startService(new Intent(this, NotificationListener.class));
 
-        //start the settings activity
+        // Start the settings activity
         this.startActivity(new Intent(this, Settings.class));
 
-        //close this activity
+        // Close this activity
         this.finish();
         Log.d(TAG, "LS Startup onCreate End");
     }
