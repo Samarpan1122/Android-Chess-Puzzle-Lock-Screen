@@ -12,51 +12,40 @@ import android.widget.EditText;
 
 import java.io.File;
 import java.io.FileOutputStream;
-
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
-/*import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.common.api.GoogleApiClient;*/
-
 /*
- * This class acts as allows the user enter in a password and determine if he/she wants
- * to see notifications.  These settings are encrypted and saved to file.
+ * This class allows the user to enter a password and determine if he/she wants
+ * to see notifications. These settings are encrypted and saved to a file.
  * When a new password is selected, the Mastermind class will generate challenge categories.
- * Those challenge categories will then be saved to file from here.
- *
+ * Those challenge categories will then be saved to a file from here.
  */
 
 public class Settings extends Activity {
     CheckBox checkBox;
     private static final String TAG = "TAG";
-    /**
-     * ATTENTION: This was auto-generated to implement the App Indexing API.
-     * See https://g.co/AppIndexing/AndroidStudio for more information.
-     */
-  //  private GoogleApiClient client;
+    private static final String ENCRYPTION_ALGORITHM = "AES";
+    private static final String ENCRYPTION_KEY = "448AFBF228EC9AZX"; // Ensure this key is securely managed
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        //save the checkBox
-        checkBox = (CheckBox) findViewById(R.id.checkBox);
-        if (LS_Service.showNotifications_)
+        // Save the checkBox
+        checkBox = findViewById(R.id.checkBox);
+        if (LS_Service.showNotifications_) {
             checkBox.setChecked(true);
+        }
         Log.d(TAG, "Settings onCreate");
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-     //   client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        //getMenuInflater().inflate(R.menu.menu_settings, menu);
         return true;
     }
 
@@ -67,105 +56,77 @@ public class Settings extends Activity {
         // as you specify a parent lockscreenActivity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-       /* if (id == R.id.action_settings) {
-            return true;
-        }*/
-
         return super.onOptionsItemSelected(item);
     }
 
-    //when the user changes the checkbox check
+    // When the user changes the checkbox check
     public void onCheck(View view) {
-        //if its checked
         if (checkBox.isChecked()) {
-
             LS_Service.showNotifications_ = true;
-            //go to where the setting needed to do this is located
-            //Note:  Currently, the app doesn't check to see if the user allowed the app to use the
-            //notification listener service.  That needs to be added.
+            // Go to where the setting needed to do this is located
             startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-            Log.d(TAG, "Notfications are on");
+            Log.d(TAG, "Notifications are on");
         } else {
-            Log.d(TAG, "Notfications are off");
+            Log.d(TAG, "Notifications are off");
             LS_Service.showNotifications_ = false;
-
         }
 
-        //update file
+        // Update file
         updateFile();
     }
 
-    //saves all settings to file
+    // Saves all settings to file
     private void updateFile() {
         File file = new File(this.getFilesDir(), "appData");
-        try {
-            FileOutputStream fos = new FileOutputStream(file);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            byte[] pw = LS_Service.password_.getBytes(StandardCharsets.UTF_8);
+            byte[] buffer = new byte[pw.length + 1];
+
+            // Put the password bytes in the buffer
+            System.arraycopy(pw, 0, buffer, 0, pw.length);
+
+            // Put the show notifications byte at the end of the buffer
+            buffer[buffer.length - 1] = (byte) (LS_Service.showNotifications_ ? 0 : 1);
+
             try {
+                // Get a cipher
+                Cipher cipher = Cipher.getInstance(ENCRYPTION_ALGORITHM);
 
-                //key used in encryption
-                String key = "448AFBF228EC9AZX";
+                // Put the secret key into the this class
+                Key secretKeySpec = new SecretKeySpec(ENCRYPTION_KEY.getBytes(StandardCharsets.UTF_8), ENCRYPTION_ALGORITHM);
 
-                byte[] pw = LS_Service.password_.getBytes("UTF8");
-                byte[] buffer = new byte[pw.length + 1];
+                // Initialize the cipher
+                cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
 
-                //put the password bytes in the buffer
-                for (int i = 0; i < pw.length; i++) {
-                    buffer[i] = pw[i];
-                }
+                // Encrypt the data
+                byte[] encryptedData = cipher.doFinal(buffer);
 
-                //put the show notifications byte at the end of the buffer
-                if (LS_Service.showNotifications_)
-                    buffer[buffer.length - 1] = (byte) 0;
-                else
-                    buffer[buffer.length - 1] = (byte) 1;
+                // Write it to file
+                fos.write(encryptedData);
 
-                try {
-                    //get a cipher
-                    Cipher cipher = Cipher.getInstance("AES");
-
-                    //put the secret key into the this class
-                    SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes("UTF8"), "AES");
-
-                    //initialize the cipher
-                    cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-
-                    //encrypt the data
-                    buffer = cipher.doFinal(buffer);
-
-                    //write it to file
-                    fos.write(buffer);
-
-                    fos.close();
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.d(TAG, "file not made");
-
-                }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Encryption error", e);
             }
         } catch (Exception e) {
-            Log.d(TAG, "file not made2352");
+            Log.e(TAG, "File not created", e);
         }
     }
 
-    //This is called when the user hits the set password button
+    // This is called when the user hits the set password button
     public void onSetPassword(View view) {
-        //get the password from the text box
-        EditText editText = (EditText) findViewById(R.id.editText);
+        // Get the password from the text box
+        EditText editText = findViewById(R.id.editText);
         String pw = editText.getText().toString();
-        //make sure it is acceptable
+        // Make sure it is acceptable
         if (pw.length() == 4) {
-            //save the password
+            // Save the password
             LS_Service.password_ = pw;
             editText.setText("");
 
-            //update the password file
+            // Update the password file
             updateFile();
 
-            //save the challenge codes
+            // Save the challenge codes
             Settings.this.finish();
 
             Log.d(TAG, LS_Service.password_);
@@ -175,40 +136,10 @@ public class Settings extends Activity {
     @Override
     public void onStart() {
         super.onStart();
-
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-      /*  client.connect();
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "Settings Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app URL is correct.
-                Uri.parse("android-app://edu.hayes_rlynchburg.lockscreen/http/host/path")
-        );
-        AppIndex.AppIndexApi.start(client, viewAction);*/
     }
 
     @Override
     public void onStop() {
         super.onStop();
-
-       /*/// ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
-        Action viewAction = Action.newAction(
-                Action.TYPE_VIEW, // TODO: choose an action type.
-                "Settings Page", // TODO: Define a title for the content shown.
-                // TODO: If you have web page content that matches this app activity's content,
-                // make sure this auto-generated web page URL is correct.
-                // Otherwise, set the URL to null.
-                Uri.parse("http://host/path"),
-                // TODO: Make sure this auto-generated app URL is correct.
-                Uri.parse("android-app://edu.hayes_rlynchburg.lockscreen/http/host/path")
-        );
-        AppIndex.AppIndexApi.end(client, viewAction);
-        client.disconnect();*/
     }
 }
