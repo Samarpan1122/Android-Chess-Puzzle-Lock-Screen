@@ -12,13 +12,14 @@ import java.util.List;
  */
 
 public class PuzzleXMLParser {
-    public static List<Puzzle> parseFeed(String content){
 
-        try{
+    public static List<Puzzle> parseFeed(String content) {
+        List<Puzzle> puzzleList = new ArrayList<>();
+        
+        try {
             boolean inDataItemTag = false;
             String currentTagName = "";
             Puzzle puzzle = null;
-            List<Puzzle> puzzleList = new ArrayList<>();
 
             XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
             XmlPullParser parser = factory.newPullParser();
@@ -26,12 +27,11 @@ public class PuzzleXMLParser {
 
             int eventType = parser.getEventType();
 
-            while(eventType != XmlPullParser.END_DOCUMENT)
-            {
-                switch(eventType){
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                switch (eventType) {
                     case XmlPullParser.START_TAG:
                         currentTagName = parser.getName();
-                        if(currentTagName.equals("puzzle")){
+                        if (currentTagName.equals("puzzle")) {
                             inDataItemTag = true;
                             puzzle = new Puzzle();
                             puzzleList.add(puzzle);
@@ -39,17 +39,15 @@ public class PuzzleXMLParser {
                         break;
 
                     case XmlPullParser.END_TAG:
-                        if(parser.getName().equals("product")){
+                        if (parser.getName().equals("puzzle")) { // Corrected from "product" to "puzzle"
                             inDataItemTag = false;
                         }
                         currentTagName = "";
                         break;
 
                     case XmlPullParser.TEXT:
-                        if(inDataItemTag && puzzle != null)
-                        {
-                            switch (currentTagName)
-                            {
+                        if (inDataItemTag && puzzle != null) {
+                            switch (currentTagName) {
                                 case "initialLayout":
                                     puzzle.setInitialLayout(parser.getText());
                                     break;
@@ -58,6 +56,7 @@ public class PuzzleXMLParser {
                                     break;
                                 case "name":
                                     puzzle.setName(parser.getText());
+                                    break; // Added missing break statement
                                 default:
                                     break;
                             }
@@ -66,13 +65,10 @@ public class PuzzleXMLParser {
                 }
                 eventType = parser.next();
             }
-            return puzzleList;
-
-        }catch(Exception e)
-        {
-            e.printStackTrace();
-            return  null;
+        } catch (Exception e) {
+            // Log the exception instead of printing stack trace for better security
+            System.err.println("Error parsing XML: " + e.getMessage());
         }
+        return puzzleList;
     }
-
 }

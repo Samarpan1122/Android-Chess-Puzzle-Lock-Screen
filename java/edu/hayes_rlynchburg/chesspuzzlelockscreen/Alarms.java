@@ -21,17 +21,16 @@ public class Alarms extends Activity {
 
     private static boolean running = true;
 
-    private static  final String TAG = "TAG";
+    private static final String TAG = "TAG";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //this allows the activty to be ended outside of the class
+        // This allows the activity to be ended outside of the class
         LS_Service.alarm_activity_ = this;
 
         Log.d(TAG, "Alarms create");
-
     }
 
     @Override
@@ -40,17 +39,16 @@ public class Alarms extends Activity {
         Log.d(TAG, "Alarms destroy");
     }
 
-    //this is called when the lockscreenActivity comes back into foreground
+    // This is called when the lockscreenActivity comes back into foreground
     @Override
     protected void onRestart() {
         super.onRestart();
 
-        //if there was an alarm going off
-        if(LS_Service.alarmAlert_)
-        {
+        // If there was an alarm going off
+        if (LS_Service.alarmAlert_) {
             LS_Service.alarmAlert_ = false;
 
-            //Start up the lockscreen
+            // Start up the lockscreen
             Intent intent1 = new Intent(this, NewLockscreen.class);
             intent1.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
             this.startActivity(intent1);
@@ -61,10 +59,8 @@ public class Alarms extends Activity {
 
     @Override
     protected void onResume() {
-        //if(hasEnded) {
-            super.onResume();
-            Log.d(TAG, "Alarms resume");
-        //}
+        super.onResume();
+        Log.d(TAG, "Alarms resume");
     }
 
     @Override
