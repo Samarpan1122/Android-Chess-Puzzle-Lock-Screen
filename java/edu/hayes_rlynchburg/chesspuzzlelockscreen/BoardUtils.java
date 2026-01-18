@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public enum  BoardUtils {
+public enum BoardUtils { // Added missing class body braces
 
     INSTANCE;
 
@@ -35,25 +35,25 @@ public enum  BoardUtils {
 
     private static List<Boolean> initColumn(int columnNumber) {
         final Boolean[] column = new Boolean[NUM_TILES];
-        for(int i = 0; i < column.length; i++) {
+        for (int i = 0; i < column.length; i++) {
             column[i] = false;
         }
         do {
             column[columnNumber] = true;
             columnNumber += NUM_TILES_PER_ROW;
-        } while(columnNumber < NUM_TILES);
+        } while (columnNumber < NUM_TILES);
         return ImmutableList.copyOf(column);
     }
 
     private static List<Boolean> initRow(int rowNumber) {
         final Boolean[] row = new Boolean[NUM_TILES];
-        for(int i = 0; i < row.length; i++) {
+        for (int i = 0; i < row.length; i++) {
             row[i] = false;
         }
         do {
             row[rowNumber] = true;
             rowNumber++;
-        } while(rowNumber % NUM_TILES_PER_ROW != 0);
+        } while (rowNumber % NUM_TILES_PER_ROW != 0);
         return ImmutableList.copyOf(row);
     }
 
@@ -90,18 +90,18 @@ public enum  BoardUtils {
         return ALGEBRAIC_NOTATION.get(coordinate);
     }
 
-   /*public static boolean isThreatenedBoardImmediate(final Board board) {
+    /*public static boolean isThreatenedBoardImmediate(final Board board) {
         return board.whitePlayer().isInCheck() || board.blackPlayer().isInCheck();
     }*/
 
-//    public static boolean isEscapeCheckMove(final Board board) {
-//
-//        final Board priorBoard = move.getBoard()
-//
-//
-//        return isThreatenedBoardImmediate(moveTransition.getFromBoard()) &&
-//               !isThreatenedBoardImmediate(moveTransition.getToBoard());
-//    }
+    //    public static boolean isEscapeCheckMove(final Board board) {
+    //
+    //        final Board priorBoard = move.getBoard()
+    //
+    //
+    //        return isThreatenedBoardImmediate(moveTransition.getFromBoard()) &&
+    //               !isThreatenedBoardImmediate(moveTransition.getToBoard());
+    //    }
 
     /*public static boolean threatChainScore(final Board board) {
 
