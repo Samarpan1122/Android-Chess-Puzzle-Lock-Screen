@@ -28,7 +28,6 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Created by Ryan Hayes on 10/9/2016.
  */
@@ -37,22 +36,20 @@ public class NewLockscreen extends AppCompatActivity {
 
     private View layoutOfLS_;
 
-    //parameters of the layout of the lockscreen
+    // Parameters of the layout of the lockscreen
     public static WindowManager.LayoutParams layoutParamsOfLS_;
 
-    //scrollable list of notifications
+    // Scrollable list of notifications
     public static ScrollView scrollView_;
 
-    //textedit used to input password on lockscreen
+    // EditText used to input password on lockscreen
     public static EditText ed_;
-
-    //public static Button emerg_;
 
     public static int MAX_MOVES = 3;
 
     public static GridView gridView_;
 
-    //linear layout of notifications
+    // Linear layout of notifications
     public static LinearLayout listOfNotifications_;
 
     public static WindowManager windowManager_;
@@ -62,12 +59,12 @@ public class NewLockscreen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "Protolock onCreate Start");
-        //lockscreen is active
-        //save access to this activity
+        // Lockscreen is active
+        // Save access to this activity
         LS_Service.lockscreenActivity_ = this;
 
         initializeChessLayout();
-        if(LS_Service.showNotifications_ && LS_Service.notifications_ != null)
+        if (LS_Service.showNotifications_ && LS_Service.notifications_ != null)
             showNotifications();
 
         windowManager_.addView(relativeLayout_, layoutParamsOfLS_);
@@ -79,71 +76,62 @@ public class NewLockscreen extends AppCompatActivity {
         this.startService(new Intent(this, LS_Service.class));
     }
 
-
-    private void initializeNumericLockscreen(int layout){
-
+    private void initializeNumericLockscreen(int layout) {
         relativeLayout_.removeAllViewsInLayout();
 
         setContentView(layout);
 
-        //get an inflater
+        // Get an inflater
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(LAYOUT_INFLATER_SERVICE);
 
-        //inflate the layout
+        // Inflate the layout
         layoutOfLS_ = inflater.inflate(layout, relativeLayout_);
 
-        //get edittext
+        // Get EditText
         ed_ = (EditText) layoutOfLS_.findViewById(R.id.editText);
-        // emerg_ = (Button) layoutOfLS_.findViewById(R.id.emergency);
 
-        //get scroll View
+        // Get ScrollView
         scrollView_ = (ScrollView) layoutOfLS_.findViewById(R.id.scrollView);
 
         listOfNotifications_ = new LinearLayout(this);
         listOfNotifications_.setOrientation(LinearLayout.VERTICAL);
-
     }
 
-    public boolean fileExistance(String fname){
+    public boolean fileExistance(String fname) {
         File file = getBaseContext().getFileStreamPath(fname);
         return file.exists();
     }
 
-
-    private void initializeChessLayout()
-    {
-        //alert window disables the home button
-        layoutParamsOfLS_ = new WindowManager.LayoutParams(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT); //create layout params of system alert
-        windowManager_ = ((WindowManager) getApplicationContext().getSystemService(WINDOW_SERVICE));      //create wind
+    private void initializeChessLayout() {
+        // Alert window disables the home button
+        layoutParamsOfLS_ = new WindowManager.LayoutParams(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY); // Use TYPE_APPLICATION_OVERLAY for modern Android versions
+        windowManager_ = ((WindowManager) getApplicationContext().getSystemService(WINDOW_SERVICE));
         relativeLayout_ = new RelativeLayout(getBaseContext());
 
-        //add the parameters to the the window
-         getWindow().setAttributes(layoutParamsOfLS_);
+        // Add the parameters to the window
+        getWindow().setAttributes(layoutParamsOfLS_);
 
-        //get an inflater
+        // Get an inflater
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(LAYOUT_INFLATER_SERVICE);
 
         Log.d("STATE", "The layout is: " + LS_Service.initialLayout_);
 
-        //Log.d("STATE", "The layout is: " + LS_Reciever.initialLayout);
-
         setContentView(R.layout.activity_chess_lockscreen);
 
-        //inflate the layout
+        // Inflate the layout
         layoutOfLS_ = inflater.inflate(R.layout.activity_chess_lockscreen, relativeLayout_);
 
-        gridView_ = (GridView)layoutOfLS_.findViewById(R.id.gridview);
+        gridView_ = (GridView) layoutOfLS_.findViewById(R.id.gridview);
         final Board updater = new Board(this);
         readPuzzles();
-        if(LS_Service.initialLayout_ != null) {
+        if (LS_Service.initialLayout_ != null) {
             updater.placePieces(LS_Service.initialLayout_);
             gridView_.setAdapter(updater);
 
-            //get edittext
+            // Get EditText
             ed_ = (EditText) layoutOfLS_.findViewById(R.id.editText);
-            // emerg_ = (Button) layoutOfLS_.findViewById(R.id.emergency);
 
-            //get scroll View
+            // Get ScrollView
             scrollView_ = (ScrollView) layoutOfLS_.findViewById(R.id.scrollView);
 
             listOfNotifications_ = new LinearLayout(this);
@@ -165,39 +153,25 @@ public class NewLockscreen extends AppCompatActivity {
 
                             updater.swap(lastTile, position, cxt);
 
-                            if (Board.promotionCandidates[position] && Board.board_[position].getName() == "pawn") {
+                            if (Board.promotionCandidates[position] && Board.board_[position].getName().equals("pawn")) {
                                 Board.board_[position].pawnPromote(position, NewLockscreen.this);
                             }
 
                             gridView_.setAdapter(updater);
 
-                            if (currentColor.equals(Tile.Color.WHITE)) {
-                                currentColor = Tile.Color.BLACK;
-                            } else {
-                                currentColor = Tile.Color.WHITE;
-                            }
-
-                            /*if (updater.isInCheck(currentColor)) {
-                                if (!updater.hasEscapeMoves(currentColor)) {
-                                    //Toast.makeText(NewLockscreen.this, currentColor.toString() + " is in checkmate!", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    //Toast.makeText(NewLockscreen.this, currentColor.toString() + " is in check", Toast.LENGTH_SHORT).show();
-                                }
-                            }*/
+                            currentColor = currentColor.equals(Tile.Color.WHITE) ? Tile.Color.BLACK : Tile.Color.WHITE;
 
                             Log.d("STATE", "The correct answer is: " + LS_Service.finalLayout_);
                             if (Board.evaluate(LS_Service.finalLayout_)) {
                                 Toast.makeText(NewLockscreen.this, "WIN!!!", Toast.LENGTH_SHORT).show();
                                 NewLockscreen.this.finish();
-
                             } else if ((MAX_MOVES - moves != 1)) {
-                                //updater = new Board(NewLockscreen.this);
                                 updater.clear();
                                 updater.placePieces(LS_Service.initialLayout_);
                                 gridView_.setAdapter(updater);
                                 currentColor = Tile.Color.WHITE;
                                 moves++;
-                                ed_.setText("Wrong move. You have " + Integer.toString(MAX_MOVES - moves) + " attempts left");
+                                ed_.setText("Wrong move. You have " + (MAX_MOVES - moves) + " attempts left");
                             } else {
                                 initializeNumericLockscreen(R.layout.activity_numeric_lockscreen);
                             }
@@ -210,17 +184,15 @@ public class NewLockscreen extends AppCompatActivity {
                     }
                 }
             });
-        }
-        else{
+        } else {
             initializeNumericLockscreen(R.layout.activity_no_chess_puzzles_lockscreen);
             TextView box = (TextView) findViewById(R.id.challenge);
             box.setText("Waiting for Puzzles");
         }
     }
 
-    void showNotifications()
-    {
-        //convert Notifications into views to be displayed
+    void showNotifications() {
+        // Convert Notifications into views to be displayed
         for (int i = 0; i < NotificationListener.numberOfNotifications; ++i) {
             RemoteViews remoteViews = LS_Service.notifications_[i].contentView;
 
@@ -231,59 +203,51 @@ public class NewLockscreen extends AppCompatActivity {
             notification.setOnClickListener(NewLockscreen.notifClicker);
             NewLockscreen.listOfNotifications_.addView(notification, i, NewLockscreen.layoutParamsOfLS_);
         }
-        //add the list of notififcations onto the scroll view
+        // Add the list of notifications onto the scroll view
         scrollView_.addView(listOfNotifications_);
     }
 
-    public void onDestroy()
-    {
+    @Override
+    public void onDestroy() {
         Log.d(TAG, "Protoclock destroy");
-        //clean up
+        // Clean up
         relativeLayout_.removeAllViewsInLayout();
         windowManager_.removeView(relativeLayout_);
         super.onDestroy();
     }
 
     public void buttonOnClick(View view) {
-        //if the unlock button was pressed
-        if (view.getId() == R.id.unlock)
-        {
+        // If the unlock button was pressed
+        if (view.getId() == R.id.unlock) {
             Log.d(TAG, "Protolock button pressed");
 
             Log.d(TAG, "Entered Password: " + ed_.getText().toString());
             Log.d(TAG, "Actual Password: " + LS_Service.password_);
             if (LS_Service.password_.equals(ed_.getText().toString())) {
-                //unlock phone
+                // Unlock phone
                 Log.d(TAG, "Phone Unlocking");
-            //    LS_Service.alarm_activity_.finish();
                 NewLockscreen.this.finish();
             }
-           // NewLockscreen.this.finish();
         }
 
-        //if the user hit the emergency button
-        if(view.getId() == R.id.emergency)
-        {
-            //open the emergency dialer
+        // If the user hit the emergency button
+        if (view.getId() == R.id.emergency) {
+            // Open the emergency dialer
             Log.d(TAG, "Emergency clicked");
             Intent emergency = new Intent("android.intent.action.MAIN");
             emergency.setComponent(ComponentName.unflattenFromString("com.android.phone/.EmergencyDialer"));
             emergency.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(emergency);
             NewLockscreen.this.finish();
-            /*Intent lockscreenIntent = new Intent(null ,NewLockscreen.class);
-            lockscreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(lockscreenIntent);*/
         }
     }
 
     public void readPuzzles() {
         try {
             File file = new File(this.getFilesDir(), LS_Service.puzzlesFileName_);
-            //file.length();
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
 
-            // do reading, usually loop until end of file reading
+            // Do reading, usually loop until end of file reading
             String mLine = reader.readLine();
 
             int currentIndex = Integer.parseInt(mLine);
@@ -291,16 +255,15 @@ public class NewLockscreen extends AppCompatActivity {
             List<String> fileLines = new ArrayList<>();
             fileLines.add(mLine);
             mLine = reader.readLine();
-            fileLines.add(mLine); //add amount of puzzles to file lines
+            fileLines.add(mLine); // Add amount of puzzles to file lines
 
             int counter = 2;
 
-            while (mLine != null) { //while we havent read through the file
-                if (counter == currentIndex && !hasRead) //and we havent read in init and final layout
-                {
+            while (mLine != null) { // While we haven't read through the file
+                if (counter == currentIndex && !hasRead) { // And we haven't read in init and final layout
                     mLine = reader.readLine();
                     fileLines.add(mLine);
-                    LS_Service.initialLayout_ = mLine; // process// line
+                    LS_Service.initialLayout_ = mLine; // Process line
                     mLine = reader.readLine();
                     fileLines.add(mLine);
                     LS_Service.finalLayout_ = mLine;
@@ -314,16 +277,15 @@ public class NewLockscreen extends AppCompatActivity {
 
             reader.close();
 
-            if(hasRead)
-            {
+            if (hasRead) {
                 String newLine = "\n";
                 fileLines.set(0, Integer.toString(currentIndex));
 
                 FileOutputStream fos = new FileOutputStream(new File(this.getFilesDir(), LS_Service.puzzlesFileName_));
 
-                for(String line : fileLines) {
+                for (String line : fileLines) {
                     Log.d(TAG, "readPuzzles: " + line);
-                    if(line != null) {
+                    if (line != null) {
                         fos.write(line.getBytes());
                         fos.write(newLine.getBytes());
                     }
@@ -331,7 +293,7 @@ public class NewLockscreen extends AppCompatActivity {
                 fos.close();
             }
 
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -342,37 +304,31 @@ public class NewLockscreen extends AppCompatActivity {
         LS_Service.alarmAlert_ = false;
     }
 
-    //disables the back button
+    // Disables the back button
     @Override
     public void onBackPressed() {
         Log.d(TAG, "Protolock back pressed");
         return;
     }
 
-    //this handles what happens when a notification was hit
+    // This handles what happens when a notification was hit
     public static View.OnClickListener notifClicker = new View.OnClickListener() {
         @Override
-        public void onClick(View v)
-        {
-            //get a list of all notifications
+        public void onClick(View v) {
+            // Get a list of all notifications
             ArrayList<View> items = listOfNotifications_.getTouchables();
 
             int i = 0;
-            //find the index location for where the view is in the list of all views
-            while (i < items.size() && items.get(i).getId() != v.getId())
-            {
+            // Find the index location for where the view is in the list of all views
+            while (i < items.size() && items.get(i).getId() != v.getId()) {
                 ++i;
             }
-            try
-            {
-                //lauch the application that view is attached to from the list of all notifications
+            try {
+                // Launch the application that view is attached to from the list of all notifications
                 LS_Service.notifications_[i].contentIntent.send();
-            }
-            catch (PendingIntent.CanceledException e)
-            {
+            } catch (PendingIntent.CanceledException e) {
+                Log.e(TAG, "Notification click failed", e);
             }
         }
     };
 }
-
-
